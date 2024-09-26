@@ -26,6 +26,11 @@ What datasets are you sourcing from? How frequently are the source datasets upda
 
 https://datacatalog.worldbank.org/search/dataset/0037798/Global-Economic-Monitor
 
+Unemployment Rate, seas. adj.
+Industrial Production, constant 2010 US$, seas. adj.
+Exports Merchandise, Customs, Price, US$, seas. adj..xlsx
+CPI
+
 
 ## Solution architecture
 
@@ -45,8 +50,4 @@ Here is a sample solution architecture diagram:
 
 How is your project broken down? Who is doing what?
 
-We recommend using a free Task board such as [Trello](https://trello.com/). This makes it easy to assign and track tasks to each individual.
 
-Example:
-
-![images/kanban-task-board.png](images/kanban-task-board.png)

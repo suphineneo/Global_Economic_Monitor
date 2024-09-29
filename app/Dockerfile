@@ -8,4 +8,4 @@ COPY requirements.txt .
 
 RUN pip install -r requirements.txt 
 
-CMD ["python", "etl_project/main/main.py"]
+CMD ["python", "-m", "etl_project.main"]

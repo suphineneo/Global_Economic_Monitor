@@ -14,6 +14,7 @@ from sqlalchemy.engine import URL
 
 
 def extract(indicator, date_range):
+    print("Starting extract")
     api_url = f"https://api.worldbank.org/v2/countries/all/indicators/{indicator}"
 
     params = {"date": date_range, "format": "json", "page": 1}  # Start at page 1
@@ -36,11 +37,17 @@ def extract(indicator, date_range):
         export_data.extend(response_data[1])
         params["page"] += 1
 
-    return pd.DataFrame(export_data)
+    df_export = pd.json_normalize(export_data)
+
+    print("Completed extract")
+
+    return pd.DataFrame(df_export)
 
 
-def transform(df_data: pd.DataFrame) -> pd.DataFrame:
-    df_selected = df_export[
+def transform(df: pd.DataFrame) -> pd.DataFrame:
+    print("Starting transform")
+
+    df_selected = df[
         [
             "date",
             "countryiso3code",
@@ -74,10 +81,12 @@ def transform(df_data: pd.DataFrame) -> pd.DataFrame:
 
     df_cleaned = df_cleaned.astype({"year": int})
 
+    print("Completed transform")
     return df_cleaned
 
 
 def load(df: pd.DataFrame):
+    print("Starting load")
     # create connection to database
     connection_url = URL.create(
         drivername="postgresql+pg8000",  # "postgresql+pg8000" indicates the driver to be used.
@@ -90,11 +99,11 @@ def load(df: pd.DataFrame):
     # creates the engine to connect to the db
     engine = create_engine(connection_url)
 
-    # append using pandas
-    df.to_sql("exports", engine, if_exists="append", index=False)
+    # # append using pandas
+    # df.to_sql("exports", engine, if_exists="append", index=False)
 
-    # replace using pandas
-    df.to_sql("exports", engine, if_exists="replace")
+    # # replace using pandas
+    # df.to_sql("exports", engine, if_exists="replace")
 
     # it is not automatic with pandas, we need to write exactly what the table looks like
     meta = MetaData()
@@ -102,7 +111,7 @@ def load(df: pd.DataFrame):
         "exports",
         meta,
         Column("year", Integer, primary_key=True),
-        Column("country_code", String),
+        Column("country_code", String, primary_key=True),
         Column("country_name", String),
         Column("indicator_id", String),
         Column("indicator_value", String),
@@ -130,8 +139,10 @@ def load(df: pd.DataFrame):
     with engine.connect() as connection:
         connection.execute(upsert_statement)
 
+    print("Completed load")
+
 
 if __name__ == "__main__":
-    df_data = extract()
-    df_cleaned = transform(df_data)
-    load(df_cleaned)
+    df = extract("TX.VAL.MRCH.XD.WD", "2020:2024")
+    df_transformed = transform(df)
+    load(df_transformed)

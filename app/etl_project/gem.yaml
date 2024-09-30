@@ -1,0 +1,9 @@
+name: gem
+config:
+  region_classification_path: "data/CLASS_CSV.csv"
+  log_folder_path: ""
+  date_range: "2022:2023"
+  indicator_unemp: "SL.UEM.TOTL.ZS"
+  indicator_cpi: ""
+  indicator_export: ""
+  indicator_import: ""

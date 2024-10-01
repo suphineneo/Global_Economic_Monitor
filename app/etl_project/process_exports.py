@@ -1,4 +1,5 @@
 # import requests
+from logging import setup_pipeline_logging, get_logs
 import pandas as pd
 import requests
 import yaml
@@ -173,7 +174,15 @@ if __name__ == "__main__":
             f"Missing {yaml_file_path} file! Please create the yaml file with at least a `name` key for the pipeline name."
         )
 
+    logger, log_file = setup_pipeline_logging("worldbankdata_exports", "logs")
+    logger.info("Making api connection")
+    #logs = get_logs(log_file)
+
     # Execute the ETL pipeline
     df = extract_export(indicator, date_range)
     df_transformed = transform(df)
+    logger.info("Finishing Transformations")
+    logger.info("Loading Data into Postgres")
     load(df_transformed)
+    logger.info("Finished loading into postgres")
+    logger.info("Pipeline Run Complete")

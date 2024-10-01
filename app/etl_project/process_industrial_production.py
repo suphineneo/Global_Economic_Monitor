@@ -6,6 +6,9 @@ import openpyxl
 from datetime import datetime, timedelta
 from requests.adapters import HTTPAdapter, Retry
 import sqlalchemy
+import logging
+import time
+
 
 
 class WorldBankDataLoader:
@@ -56,9 +59,18 @@ class WorldBankDataLoader:
 
 
 # Example usage
-# if __name__ == "__main__":
-#     # Create an instance of the loader for the specific indicator and date range
-#     loader = WorldBankDataLoader(indicator="NV.IND.TOTL.KD.ZG", start_year="1990", end_year="2024")
+if __name__ == "__main__":
 
-#     # Fetch the data
-#     df_data = loader.fetch_data()
+
+    # Create an instance of the loader for the specific indicator and date range
+    loader = WorldBankDataLoader(indicator="NV.IND.TOTL.KD.ZG", start_year="2020", end_year="2024")
+
+    logger, log_file = setup_pipeline_logging("worldbankdata_industrial", "logs")
+    logger.info("Making api connection")
+    logs = get_logs(log_file)
+    print(logs)
+
+    # Fetch the data
+    logger.info("Starting to fetch data")
+    df_data = loader.fetch_data()
+    logger.info("Data has been fetched")

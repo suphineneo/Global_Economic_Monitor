@@ -143,7 +143,7 @@ def load(df: pd.DataFrame):
 
     # Execute the upsert statement
     with engine.connect() as connection:
-        connection.execute(upsert_statement)
+       connection.execute(upsert_statement)
 
     print("Completed load")
 

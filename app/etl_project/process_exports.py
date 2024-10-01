@@ -12,7 +12,7 @@ from etl_project.connectors.postgresql import PostgreSqlClient
 from etl_project.assets.pipeline_logging import PipelineLogging
 
 
-def extract_export(indicator, date_range):
+def extract(indicator, date_range):
 
     print("Starting extract")
     base_url = f"https://api.worldbank.org/v2/countries/all/indicators/{indicator}"
@@ -46,7 +46,7 @@ def extract_export(indicator, date_range):
 
 
 def transform(df: pd.DataFrame) -> pd.DataFrame:
-    print("Starting transform")
+    print("Starting transform for exports")
 
     df_selected = df[
         [
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     pipeline_logging.logger.info("Making api connection")
 
     # Execute the ETL pipeline
-    df = extract_export(indicator, date_range)
+    df = extract(indicator, date_range)
     pipeline_logging.logger.info("Finishing Extract")
 
     pipeline_logging.logger.info("Starting Transform")

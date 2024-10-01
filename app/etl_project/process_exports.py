@@ -105,7 +105,7 @@ def load(
         postgresql_client.insert(
             data=df.to_dict(orient="records"), table=table, metadata=metadata
         )
-    elif load_method == "upsert_statement":
+    elif load_method == "upsert":
         postgresql_client.upsert(
             data=df.to_dict(orient="records"), table=table, metadata=metadata
         )
@@ -183,6 +183,7 @@ if __name__ == "__main__":
         postgresql_client=postgresql_client,
         table=export_table,
         metadata=metadata,
+        load_method="upsert",
     )
     pipeline_logging.logger.info("Finished loading into postgres")
     pipeline_logging.logger.info("Pipeline Run Complete")

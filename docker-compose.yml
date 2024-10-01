@@ -1,0 +1,14 @@
+services:
+  etl_postgres:
+    image: postgres:14
+    container_name: etl_postgres
+    env_file:
+      - .env
+    ports:
+      - 5433:5432
+  etl_project:
+    image: global_economic_monitor_etl:latest
+    depends_on:
+      - etl_postgres
+    env_file:
+      - .env

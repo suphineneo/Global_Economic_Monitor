@@ -1,5 +1,5 @@
 # import requests
-from logging import setup_pipeline_logging, get_logs
+from pipeline_logging import setup_pipeline_logging, get_logs
 import pandas as pd
 import requests
 import yaml
@@ -176,7 +176,7 @@ if __name__ == "__main__":
 
     logger, log_file = setup_pipeline_logging("worldbankdata_exports", "logs")
     logger.info("Making api connection")
-    #logs = get_logs(log_file)
+    # logs = get_logs(log_file)
 
     # Execute the ETL pipeline
     df = extract_export(indicator, date_range)

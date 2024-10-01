@@ -5,6 +5,7 @@ import requests
 import openpyxl
 from datetime import datetime, timedelta
 from requests.adapters import HTTPAdapter, Retry
+import sqlalchemy
 
 class WorldBankDataLoader:
     def __init__(self, indicator, start_year, end_year):

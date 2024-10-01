@@ -1,6 +1,7 @@
 import logging
 import time
 
+
 def setup_pipeline_logging(pipeline_name: str, log_folder_path: str):
     # Initialize logger
     logger = logging.getLogger(pipeline_name)
@@ -18,7 +19,9 @@ def setup_pipeline_logging(pipeline_name: str, log_folder_path: str):
     stream_handler.setLevel(logging.INFO)
 
     # Create formatters and add them to the handlers
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     file_handler.setFormatter(formatter)
     stream_handler.setFormatter(formatter)
 
@@ -32,6 +35,7 @@ def setup_pipeline_logging(pipeline_name: str, log_folder_path: str):
 def get_logs(file_path: str) -> str:
     with open(file_path, "r") as file:
         return "".join(file.readlines())
+
 
 # Example usage:
 # logger, log_file = setup_pipeline_logging("pipeline_name", "/path/to/logs")

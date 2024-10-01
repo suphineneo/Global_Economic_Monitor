@@ -11,7 +11,7 @@ from sqlalchemy.engine import URL
 
 
 def extract_export(indicator, date_range):
-    
+
     print("Starting extract")
     base_url = f"https://api.worldbank.org/v2/countries/all/indicators/{indicator}"
 
@@ -25,13 +25,13 @@ def extract_export(indicator, date_range):
         if response.status_code != 200:
             print(f"Error: Unable to fetch data (Status code: {response.status_code})")
             break
-        #print(response.status_code)    
+        # print(response.status_code)
         response_data = response.json()
 
         if len(response_data) < 2 or not response_data[1]:  # Check if there's data
             print("No data available.")
             break
-           
+
         # Add current page data to all_data
         export_data.extend(response_data[1])
         # Update parameters for the next page
@@ -83,7 +83,7 @@ def transform(df: pd.DataFrame) -> pd.DataFrame:
     print("Completed transform")
 
     try:
-        df_cleaned.to_csv('data/cleaned_export_data.csv', index=False)
+        df_cleaned.to_csv("data/cleaned_export_data.csv", index=False)
         print("Data saved successfully to cleaned_export_data.csv")
     except Exception as e:
         print(f"Error saving data to CSV: {e}")
@@ -127,7 +127,9 @@ def load(df: pd.DataFrame):
     meta.create_all(engine)  # creates table if it does not exists
 
     # Create the upsert statement
-    insert_statement = postgresql.insert(export_table).values(df.to_dict(orient="records"))
+    insert_statement = postgresql.insert(export_table).values(
+        df.to_dict(orient="records")
+    )
 
     # Set up the conflict resolution statement
     upsert_statement = insert_statement.on_conflict_do_update(
@@ -150,10 +152,10 @@ if __name__ == "__main__":
 
     load_dotenv()
     # Retrieve the database configurations from environment variables
-    db_user = os.getenv('DB_USERNAME')
-    db_password = os.getenv('DB_PASSWORD')
-    db_server_name = os.getenv('SERVER_NAME')
-    db_database_name = os.getenv('DATABASE_NAME')
+    db_user = os.getenv("DB_USERNAME")
+    db_password = os.getenv("DB_PASSWORD")
+    db_server_name = os.getenv("SERVER_NAME")
+    db_database_name = os.getenv("DATABASE_NAME")
     port = os.environ.get("PORT")
 
     # Define the path to the YAML configuration file
@@ -164,8 +166,8 @@ if __name__ == "__main__":
             config = yaml.safe_load(yaml_file)
             config = config.get("config")
             indicator = config.get("indicator_export")
-            date_range = config.get("date_range")                  
-         
+            date_range = config.get("date_range")
+
     else:
         raise Exception(
             f"Missing {yaml_file_path} file! Please create the yaml file with at least a `name` key for the pipeline name."

@@ -1,46 +1,45 @@
 # import requests
 import pandas as pd
 import requests
-from secrets_config import (
-    db_database_name,
-    db_password,
-    db_server_name,
-    db_user,
-)
-
+import yaml
+from dotenv import load_dotenv
+import os
+from pathlib import Path
 from sqlalchemy import Column, Float, Integer, MetaData, String, Table, create_engine
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine import URL
 
 
-def extract(indicator, date_range):
+def extract_export(indicator, date_range):
+
     print("Starting extract")
-    api_url = f"https://api.worldbank.org/v2/countries/all/indicators/{indicator}"
+    base_url = f"https://api.worldbank.org/v2/countries/all/indicators/{indicator}"
 
     params = {"date": date_range, "format": "json", "page": 1}  # Start at page 1
 
     export_data = []
 
     while True:
-        response = requests.get(api_url, params=params)
+        response = requests.get(base_url, params=params)
 
         if response.status_code != 200:
             print(f"Error: Unable to fetch data (Status code: {response.status_code})")
             break
-
+        # print(response.status_code)
         response_data = response.json()
 
-        if len(response_data) < 2 or not response_data[1]:
-            print("No more data available.")
+        if len(response_data) < 2 or not response_data[1]:  # Check if there's data
+            print("No data available.")
             break
 
+        # Add current page data to all_data
         export_data.extend(response_data[1])
+        # Update parameters for the next page
         params["page"] += 1
 
-    df_export = pd.json_normalize(export_data)
+    df_export = pd.json_normalize(data=export_data)
 
     print("Completed extract")
-
     return pd.DataFrame(df_export)
 
 
@@ -82,20 +81,27 @@ def transform(df: pd.DataFrame) -> pd.DataFrame:
     df_cleaned = df_cleaned.astype({"year": int})
 
     print("Completed transform")
+
+    try:
+        df_cleaned.to_csv("data/cleaned_export_data.csv", index=False)
+        print("Data saved successfully to cleaned_export_data.csv")
+    except Exception as e:
+        print(f"Error saving data to CSV: {e}")
+
     return df_cleaned
 
 
 def load(df: pd.DataFrame):
     print("Starting load")
-    # create connection to database
     connection_url = URL.create(
-        drivername="postgresql+pg8000",  # "postgresql+pg8000" indicates the driver to be used.
+        drivername="postgresql+pg8000",
         username=db_user,
         password=db_password,
         host=db_server_name,
-        port=5432,  # Ensure the port number is correct (default for PostgreSQL is 5432).
+        port=port,  # Default PostgreSQL port
         database=db_database_name,
     )
+
     # creates the engine to connect to the db
     engine = create_engine(connection_url)
 
@@ -143,6 +149,31 @@ def load(df: pd.DataFrame):
 
 
 if __name__ == "__main__":
-    df = extract("TX.VAL.MRCH.XD.WD", "2020:2024")
+
+    load_dotenv()
+    # Retrieve the database configurations from environment variables
+    db_user = os.getenv("DB_USERNAME")
+    db_password = os.getenv("DB_PASSWORD")
+    db_server_name = os.getenv("SERVER_NAME")
+    db_database_name = os.getenv("DATABASE_NAME")
+    port = os.environ.get("PORT")
+
+    # Define the path to the YAML configuration file
+    yaml_file_path = "gem.yaml"
+
+    if Path(yaml_file_path).exists():
+        with open(yaml_file_path) as yaml_file:
+            config = yaml.safe_load(yaml_file)
+            config = config.get("config")
+            indicator = config.get("indicator_export")
+            date_range = config.get("date_range")
+
+    else:
+        raise Exception(
+            f"Missing {yaml_file_path} file! Please create the yaml file with at least a `name` key for the pipeline name."
+        )
+
+    # Execute the ETL pipeline
+    df = extract_export(indicator, date_range)
     df_transformed = transform(df)
     load(df_transformed)

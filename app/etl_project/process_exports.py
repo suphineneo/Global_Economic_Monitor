@@ -1,5 +1,4 @@
 # import requests
-from pipeline_logging import setup_pipeline_logging, get_logs
 import pandas as pd
 import requests
 import yaml
@@ -9,6 +8,8 @@ from pathlib import Path
 from sqlalchemy import Column, Float, Integer, MetaData, String, Table, create_engine
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine import URL
+from etl_project.connectors.postgresql import PostgreSqlClient
+from etl_project.assets.pipeline_logging import PipelineLogging
 
 
 def extract_export(indicator, date_range):
@@ -92,75 +93,44 @@ def transform(df: pd.DataFrame) -> pd.DataFrame:
     return df_cleaned
 
 
-def load(df: pd.DataFrame):
-    print("Starting load")
-    connection_url = URL.create(
-        drivername="postgresql+pg8000",
-        username=db_user,
-        password=db_password,
-        host=db_server_name,
-        port=port,  # Default PostgreSQL port
-        database=db_database_name,
-    )
-
-    # creates the engine to connect to the db
-    engine = create_engine(connection_url)
-
-    # # append using pandas
-    # df.to_sql("exports", engine, if_exists="append", index=False)
-
-    # # replace using pandas
-    # df.to_sql("exports", engine, if_exists="replace")
-
-    # it is not automatic with pandas, we need to write exactly what the table looks like
-    meta = MetaData()
-    export_table = Table(
-        "exports",
-        meta,
-        Column("year", Integer, primary_key=True),
-        Column("country_code", String, primary_key=True),
-        Column("country_name", String),
-        Column("indicator_id", String),
-        Column("indicator_value", String),
-        Column("value", Float),
-    )
-
-    meta.create_all(engine)  # creates table if it does not exists
-
+def load(
+    df: pd.DataFrame,
+    postgresql_client: PostgreSqlClient,
+    table: Table,
+    metadata: MetaData,
+    load_method: str = "overwrite",
+):
     # Create the upsert statement
-    insert_statement = postgresql.insert(export_table).values(
-        df.to_dict(orient="records")
-    )
-
-    # Set up the conflict resolution statement
-    upsert_statement = insert_statement.on_conflict_do_update(
-        index_elements=["year", "country_code"],
-        set_={
-            c.key: c
-            for c in insert_statement.excluded
-            if c.key not in ["year", "country_code"]
-        },
-    )
-
-    # Execute the upsert statement
-    with engine.connect() as connection:
-        connection.execute(upsert_statement)
-
-    print("Completed load")
+    if load_method == "insert":
+        postgresql_client.insert(
+            data=df.to_dict(orient="records"), table=table, metadata=metadata
+        )
+    elif load_method == "upsert_statement":
+        postgresql_client.upsert(
+            data=df.to_dict(orient="records"), table=table, metadata=metadata
+        )
+    elif load_method == "overwrite":
+        postgresql_client.overwrite(
+            data=df.to_dict(orient="records"), table=table, metadata=metadata
+        )
+    else:
+        raise Exception(
+            "Please specify a correct load method: [insert, upsert, overwrite]"
+        )
 
 
 if __name__ == "__main__":
 
     load_dotenv()
     # Retrieve the database configurations from environment variables
-    db_user = os.getenv("DB_USERNAME")
-    db_password = os.getenv("DB_PASSWORD")
-    db_server_name = os.getenv("SERVER_NAME")
-    db_database_name = os.getenv("DATABASE_NAME")
-    port = os.environ.get("PORT")
+    DB_USERNAME = os.getenv("DB_USERNAME")
+    DB_PASSWORD = os.getenv("DB_PASSWORD")
+    SERVER_NAME = os.getenv("SERVER_NAME")
+    DATABASE_NAME = os.getenv("DATABASE_NAME")
+    PORT = os.environ.get("PORT")
 
     # Define the path to the YAML configuration file
-    yaml_file_path = "gem.yaml"
+    yaml_file_path = "etl_project/gem.yaml"
 
     if Path(yaml_file_path).exists():
         with open(yaml_file_path) as yaml_file:
@@ -174,15 +144,45 @@ if __name__ == "__main__":
             f"Missing {yaml_file_path} file! Please create the yaml file with at least a `name` key for the pipeline name."
         )
 
-    logger, log_file = setup_pipeline_logging("worldbankdata_exports", "logs")
-    logger.info("Making api connection")
-    # logs = get_logs(log_file)
+    pipeline_logging = PipelineLogging(
+        pipeline_name="worldbankdata_exports", log_folder_path="etl_project/logs"
+    )
+    pipeline_logging.logger.info("Making api connection")
 
     # Execute the ETL pipeline
     df = extract_export(indicator, date_range)
+    pipeline_logging.logger.info("Finishing Extract")
+
+    pipeline_logging.logger.info("Starting Transform")
     df_transformed = transform(df)
-    logger.info("Finishing Transformations")
-    logger.info("Loading Data into Postgres")
-    load(df_transformed)
-    logger.info("Finished loading into postgres")
-    logger.info("Pipeline Run Complete")
+    pipeline_logging.logger.info("Finishing Transform")
+
+    pipeline_logging.logger.info("Loading Data into Postgres")
+    postgresql_client = PostgreSqlClient(
+        server_name=SERVER_NAME,
+        database_name=DATABASE_NAME,
+        username=DB_USERNAME,
+        password=DB_PASSWORD,
+        port=PORT,
+    )
+
+    metadata = MetaData()
+    export_table = Table(
+        "exports",
+        metadata,
+        Column("year", Integer, primary_key=True),
+        Column("country_code", String, primary_key=True),
+        Column("country_name", String),
+        Column("indicator_id", String),
+        Column("indicator_value", String),
+        Column("value", Float),
+    )
+
+    load(
+        df_transformed,
+        postgresql_client=postgresql_client,
+        table=export_table,
+        metadata=metadata,
+    )
+    pipeline_logging.logger.info("Finished loading into postgres")
+    pipeline_logging.logger.info("Pipeline Run Complete")

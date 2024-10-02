@@ -10,6 +10,8 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.engine import URL
 from etl_project.connectors.postgresql import PostgreSqlClient
 from etl_project.assets.pipeline_logging import PipelineLogging
+import schedule
+import time
 
 
 def extract(indicator, date_range):
@@ -41,7 +43,6 @@ def extract(indicator, date_range):
 
     df_export = pd.json_normalize(data=export_data)
 
-    print("Completed extract")
     return pd.DataFrame(df_export)
 
 
@@ -82,8 +83,6 @@ def transform(df: pd.DataFrame) -> pd.DataFrame:
 
     df_cleaned = df_cleaned.astype({"year": int})
 
-    print("Completed transform")
-
     try:
         df_cleaned.to_csv("data/cleaned_export_data.csv", index=False)
         print("Data saved successfully to cleaned_export_data.csv")
@@ -119,45 +118,21 @@ def load(
         )
 
 
-if __name__ == "__main__":
+# Define a unified function to run the entire ETL pipeline
+def run_pipeline():
+    pipeline_logging.logger.info("Starting ETL pipeline")
 
-    load_dotenv()
-    # Retrieve the database configurations from environment variables
-    DB_USERNAME = os.getenv("DB_USERNAME")
-    DB_PASSWORD = os.getenv("DB_PASSWORD")
-    SERVER_NAME = os.getenv("SERVER_NAME")
-    DATABASE_NAME = os.getenv("DATABASE_NAME")
-    PORT = os.environ.get("PORT")
-
-    # Define the path to the YAML configuration file
-    yaml_file_path = "etl_project/gem.yaml"
-
-    if Path(yaml_file_path).exists():
-        with open(yaml_file_path) as yaml_file:
-            config = yaml.safe_load(yaml_file)
-            config = config.get("config")
-            indicator = config.get("indicator_export")
-            date_range = config.get("date_range")
-
-    else:
-        raise Exception(
-            f"Missing {yaml_file_path} file! Please create the yaml file with at least a `name` key for the pipeline name."
-        )
-
-    pipeline_logging = PipelineLogging(
-        pipeline_name="worldbankdata_exports", log_folder_path="etl_project/logs"
+    # Execute Extract
+    df_extracted = extract(
+        indicator=config["indicator_export"], date_range=config["date_range"]
     )
-    pipeline_logging.logger.info("Making api connection")
+    pipeline_logging.logger.info("Extract step completed")
 
-    # Execute the ETL pipeline
-    df = extract(indicator, date_range)
-    pipeline_logging.logger.info("Finishing Extract")
+    # Execute Transform
+    df_transformed = transform(df_extracted)
+    pipeline_logging.logger.info("Transform step completed")
 
-    pipeline_logging.logger.info("Starting Transform")
-    df_transformed = transform(df)
-    pipeline_logging.logger.info("Finishing Transform")
-
-    pipeline_logging.logger.info("Loading Data into Postgres")
+    # Execute Load
     postgresql_client = PostgreSqlClient(
         server_name=SERVER_NAME,
         database_name=DATABASE_NAME,
@@ -178,12 +153,40 @@ if __name__ == "__main__":
         Column("value", Float),
     )
 
-    load(
-        df_transformed,
-        postgresql_client=postgresql_client,
-        table=export_table,
-        metadata=metadata,
-        load_method="upsert",
+    load(df_transformed, postgresql_client, export_table, metadata)
+    pipeline_logging.logger.info("Load step completed")
+    pipeline_logging.logger.info("Pipeline run complete")
+
+
+if __name__ == "__main__":
+
+    load_dotenv()
+    # Retrieve the database configurations from environment variables
+    DB_USERNAME = os.getenv("DB_USERNAME")
+    DB_PASSWORD = os.getenv("DB_PASSWORD")
+    SERVER_NAME = os.getenv("SERVER_NAME")
+    DATABASE_NAME = os.getenv("DATABASE_NAME")
+    PORT = os.environ.get("PORT")
+
+    # Define the path to the YAML configuration file
+    yaml_file_path = "etl_project/gem.yaml"
+
+    if Path(yaml_file_path).exists():
+        with open(yaml_file_path) as yaml_file:
+            config = yaml.safe_load(yaml_file)
+    else:
+        raise Exception(
+            f"Missing {yaml_file_path} file! Please create the yaml file with at least a `name` key for the pipeline name."
+        )
+
+    pipeline_logging = PipelineLogging(
+        pipeline_name="worldbankdata_exports", log_folder_path="etl_project/logs"
     )
-    pipeline_logging.logger.info("Finished loading into postgres")
-    pipeline_logging.logger.info("Pipeline Run Complete")
+    pipeline_logging.logger.info("Making api connection")
+
+    # set schedule
+    schedule.every(config.get("schedule").get("run_seconds")).seconds.do(run_pipeline)
+
+    while True:
+        schedule.run_pending()
+        time.sleep(config.get("schedule").get("poll_seconds"))

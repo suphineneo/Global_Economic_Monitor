@@ -235,7 +235,7 @@ if __name__ == "__main__":
 
     # get config variables
 
-    yaml_file_path = "gem.yaml"
+    yaml_file_path = "etl_project/pipelines/gem.yaml"
 
     if Path(yaml_file_path).exists():
         with open(yaml_file_path) as yaml_file:
@@ -253,7 +253,9 @@ if __name__ == "__main__":
         )
 
     # incremental extract from api
-    extract_environment = Environment(loader=FileSystemLoader("sql/extract"))
+    extract_environment = Environment(
+        loader=FileSystemLoader("etl_project/sql/extract")
+    )
     extract_template_name = "unemployment_incremental"
     extract_sql_template = extract_environment.get_template(
         f"{extract_template_name}.sql"
@@ -277,7 +279,9 @@ if __name__ == "__main__":
 
         # do further transformation i.e., create a unemployment_ranked table using jinja and partition
 
-        transform_environment = Environment(loader=FileSystemLoader("sql/transform"))
+        transform_environment = Environment(
+            loader=FileSystemLoader("etl_project/sql/transform")
+        )
         transform_table_name = "unemployment_ranked"
         transform_sql_template = transform_environment.get_template(
             f"{transform_table_name}.sql"

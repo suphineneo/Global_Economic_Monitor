@@ -12,7 +12,7 @@ cd Global_Economic_Monitor
 python -m pip install -r requirements.txt
 
 cd app
-python -m etl_project.process_exports
+python -m etl_project.pipelines.process_unemployment
 ```
 
 Clone `template.env` into `.env` file and update it with your environment variables

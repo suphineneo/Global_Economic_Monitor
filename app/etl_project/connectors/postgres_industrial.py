@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine, Table, MetaData
 from sqlalchemy.engine import URL
 from sqlalchemy.dialects import postgresql
+import pandas as pd
+import numpy as np
 
 
 class PostgreSqlClient:

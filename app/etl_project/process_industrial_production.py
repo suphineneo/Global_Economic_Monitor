@@ -11,6 +11,42 @@ import time
 from sqlalchemy import Column, Float, Integer, MetaData, String, Table, create_engine
 from etl_project.connectors.postgres_industrial import PostgreSqlClient
 from etl_project.assets.pipeline_logging import PipelineLogging
+from dotenv import load_dotenv
+
+
+def setup_pipeline_logging(pipeline_name: str, log_folder_path: str):
+    # Initialize logger
+    logger = logging.getLogger(pipeline_name)
+    logger.setLevel(logging.INFO)
+
+    # Create log file path
+    file_path = f"{log_folder_path}/{pipeline_name}_{time.time()}.log"
+
+    # Create handlers
+    file_handler = logging.FileHandler(file_path)
+    stream_handler = logging.StreamHandler()
+
+    # Set logging levels
+    file_handler.setLevel(logging.INFO)
+    stream_handler.setLevel(logging.INFO)
+
+    # Create formatters and add them to the handlers
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    file_handler.setFormatter(formatter)
+    stream_handler.setFormatter(formatter)
+
+    # Add handlers to the logger
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
+
+    return logger, file_path
+
+
+def get_logs(file_path: str) -> str:
+    with open(file_path, "r") as file:
+        return "".join(file.readlines())
 
 class WorldBankDataLoader:
     def __init__(self, indicator, start_year, end_year):
@@ -101,7 +137,7 @@ class WorldBankDataLoader:
         print("Completed transform")
 
         try:
-            df_cleaned.to_csv("data/industrial_cleaned_export_data.csv", index=False)
+            df_cleaned.to_csv("etl_project/data/industrial_cleaned_export_data.csv", index=False)
             print("Data saved successfully to cleaned_export_data.csv")
         except Exception as e:
             print(f"Error saving data to CSV: {e}")
@@ -141,21 +177,18 @@ class WorldBankDataLoader:
 # Example usage
 if __name__ == "__main__":
 
-<<<<<<< Updated upstream
-=======
     load_dotenv()
     DB_USERNAME = os.getenv("DB_USERNAME")
     DB_PASSWORD = os.getenv("DB_PASSWORD")
     SERVER_NAME = os.getenv("SERVER_NAME")
     DATABASE_NAME = os.getenv("DATABASE_NAME")
     PORT = os.environ.get("PORT")
->>>>>>> Stashed changes
     # Create an instance of the loader for the specific indicator and date range
     loader = WorldBankDataLoader(
         indicator="NV.IND.TOTL.KD.ZG", start_year="2020", end_year="2024"
     )
 
-    logger, log_file = setup_pipeline_logging("worldbankdata_industrial", "logs")
+    logger, log_file = setup_pipeline_logging("worldbankdata_industrial", "etl_project/logs")
     logger.info("Making api connection")
     logs = get_logs(log_file)
     print(logs)
@@ -164,8 +197,6 @@ if __name__ == "__main__":
     logger.info("Starting to fetch data")
     df_data = loader.fetch_data()
     logger.info("Data has been fetched")
-<<<<<<< Updated upstream
-=======
 
     logger.info("Starting Transformation")
     logger.info("Progressing through my transformations")
@@ -204,4 +235,3 @@ if __name__ == "__main__":
     ) 
     logger.info("Load ================>>>>>>>100 percent complete")
     logger.info("pipeline finished")
->>>>>>> Stashed changes

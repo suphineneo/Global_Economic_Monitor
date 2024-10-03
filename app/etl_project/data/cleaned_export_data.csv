@@ -1,9 +1,0 @@
-year,country_code,country_name,indicator_id,indicator_value,value
-2021,AUS,Australia,TX.VAL.MRCH.XD.WD,Export value index (2015 = 100),183.7291275501
-2020,AUS,Australia,TX.VAL.MRCH.XD.WD,Export value index (2015 = 100),133.6415269825
-2021,ITA,Italy,TX.VAL.MRCH.XD.WD,Export value index (2015 = 100),133.5445135955
-2020,ITA,Italy,TX.VAL.MRCH.XD.WD,Export value index (2015 = 100),109.3662352057
-2021,NZL,New Zealand,TX.VAL.MRCH.XD.WD,Export value index (2015 = 100),130.2795109752
-2020,NZL,New Zealand,TX.VAL.MRCH.XD.WD,Export value index (2015 = 100),113.283280791
-2021,USA,United States,TX.VAL.MRCH.XD.WD,Export value index (2015 = 100),116.7531516881
-2020,USA,United States,TX.VAL.MRCH.XD.WD,Export value index (2015 = 100),94.8330403211

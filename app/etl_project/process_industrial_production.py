@@ -10,7 +10,6 @@ import logging
 import time
 
 
-
 class WorldBankDataLoader:
     def __init__(self, indicator, start_year, end_year):
         """
@@ -61,9 +60,10 @@ class WorldBankDataLoader:
 # Example usage
 if __name__ == "__main__":
 
-
     # Create an instance of the loader for the specific indicator and date range
-    loader = WorldBankDataLoader(indicator="NV.IND.TOTL.KD.ZG", start_year="2020", end_year="2024")
+    loader = WorldBankDataLoader(
+        indicator="NV.IND.TOTL.KD.ZG", start_year="2020", end_year="2024"
+    )
 
     logger, log_file = setup_pipeline_logging("worldbankdata_industrial", "logs")
     logger.info("Making api connection")

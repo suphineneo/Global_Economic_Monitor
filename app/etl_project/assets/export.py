@@ -1,21 +1,14 @@
-# import requests
 import pandas as pd
 import requests
-import yaml
-from dotenv import load_dotenv
-import os
 from pathlib import Path
-from sqlalchemy import Column, Float, Integer, MetaData, String, Table, create_engine
-from sqlalchemy.dialects import postgresql
-from sqlalchemy.engine import URL
+from sqlalchemy import Table, MetaData
 from etl_project.connectors.postgresql import PostgreSqlClient
-from etl_project.assets.pipeline_logging import PipelineLogging
-import schedule
-import time
 
 
 def extract(indicator, date_range):
-
+    """
+    Extract data from the monitor database
+    """
     print("Starting extract")
     base_url = f"https://api.worldbank.org/v2/countries/all/indicators/{indicator}"
 
@@ -47,6 +40,9 @@ def extract(indicator, date_range):
 
 
 def transform(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Transform the raw data
+    """
     print("Starting transform for exports")
 
     df_selected = df[
@@ -83,11 +79,11 @@ def transform(df: pd.DataFrame) -> pd.DataFrame:
 
     df_cleaned = df_cleaned.astype({"year": int})
 
-    try:
-        df_cleaned.to_csv("data/cleaned_export_data.csv", index=False)
-        print("Data saved successfully to cleaned_export_data.csv")
-    except Exception as e:
-        print(f"Error saving data to CSV: {e}")
+    # try:
+    #     df_cleaned.to_csv("../data/cleaned_export_data.csv", index=False)
+    #     print("Data saved successfully to cleaned_export_data.csv")
+    # except Exception as e:
+    #     print(f"Error saving data to CSV: {e}")
 
     return df_cleaned
 
@@ -99,6 +95,16 @@ def load(
     metadata: MetaData,
     load_method: str = "overwrite",
 ):
+    """
+    Load dataframe to a database.
+
+        Args:
+            df: dataframe to load
+            postgresql_client: postgresql client
+            table: sqlalchemy table
+            metadata: sqlalchemy metadata
+            load_method: supports one of: [insert, upsert, overwrite]
+    """
     # Create the upsert statement
     if load_method == "insert":
         postgresql_client.insert(
@@ -116,77 +122,3 @@ def load(
         raise Exception(
             "Please specify a correct load method: [insert, upsert, overwrite]"
         )
-
-
-# Define a unified function to run the entire ETL pipeline
-def run_pipeline():
-    pipeline_logging.logger.info("Starting ETL pipeline")
-
-    # Execute Extract
-    df_extracted = extract(
-        indicator=config["indicator_export"], date_range=config["date_range"]
-    )
-    pipeline_logging.logger.info("Extract step completed")
-
-    # Execute Transform
-    df_transformed = transform(df_extracted)
-    pipeline_logging.logger.info("Transform step completed")
-
-    # Execute Load
-    postgresql_client = PostgreSqlClient(
-        server_name=SERVER_NAME,
-        database_name=DATABASE_NAME,
-        username=DB_USERNAME,
-        password=DB_PASSWORD,
-        port=PORT,
-    )
-
-    metadata = MetaData()
-    export_table = Table(
-        "exports",
-        metadata,
-        Column("year", Integer, primary_key=True),
-        Column("country_code", String, primary_key=True),
-        Column("country_name", String),
-        Column("indicator_id", String),
-        Column("indicator_value", String),
-        Column("value", Float),
-    )
-
-    load(df_transformed, postgresql_client, export_table, metadata)
-    pipeline_logging.logger.info("Load step completed")
-    pipeline_logging.logger.info("Pipeline run complete")
-
-
-if __name__ == "__main__":
-
-    load_dotenv()
-    # Retrieve the database configurations from environment variables
-    DB_USERNAME = os.getenv("DB_USERNAME")
-    DB_PASSWORD = os.getenv("DB_PASSWORD")
-    SERVER_NAME = os.getenv("SERVER_NAME")
-    DATABASE_NAME = os.getenv("DATABASE_NAME")
-    PORT = os.environ.get("PORT")
-
-    # Define the path to the YAML configuration file
-    yaml_file_path = "etl_project/gem.yaml"
-
-    if Path(yaml_file_path).exists():
-        with open(yaml_file_path) as yaml_file:
-            config = yaml.safe_load(yaml_file)
-    else:
-        raise Exception(
-            f"Missing {yaml_file_path} file! Please create the yaml file with at least a `name` key for the pipeline name."
-        )
-
-    pipeline_logging = PipelineLogging(
-        pipeline_name="worldbankdata_exports", log_folder_path="etl_project/logs"
-    )
-    pipeline_logging.logger.info("Making api connection")
-
-    # set schedule
-    schedule.every(config.get("schedule").get("run_seconds")).seconds.do(run_pipeline)
-
-    while True:
-        schedule.run_pending()
-        time.sleep(config.get("schedule").get("poll_seconds"))

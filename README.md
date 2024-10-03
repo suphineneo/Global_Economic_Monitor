@@ -26,18 +26,27 @@ Clone `template.env` into `.env` file and update it with your environment variab
 ```
 
 
-## Build and run on local machine
+## Build Docker containers
 ```bash
 docker build --platform=linux/amd64 -t global_economic_monitor_etl .
 docker run global_economic_monitor_etl:latest
-# Hello World
 ```
 
-- if you specify a `USERNAME` environment variable, the container should output `Hello ${USERNAME}`, else it will output `Hello World`
+
+## Run on local machine in a docker-compose cluster
 ```bash
-docker run -e USERNAME=ming global_economic_monitor_etl:latest
-# Hello ming
+# start postgres and etl containers and link them to each other
+docker-compose up
+
+# connect your pgAdmin to localhost port 5433
+
+# query the databases for new data, e.g.
+# SELECT * FROM unemployment_ranked
+
+# Cmd/Ctrl+C to cancel docker-compose, then cleanup the stopped containers
+docker-compose down
 ```
+
 
 ## Deploy and run on AWS
 ```bash

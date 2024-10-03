@@ -49,7 +49,7 @@ def extract_unemp(
                         )
                     ).scalar()
 
-                    date_range = incremental_value + 1  # max year + 1
+                    date_range = f"{incremental_value + 1}:{incremental_value + 1}"  # max year + 1
         else:
             date_range = wb_daterange  # if table doesn't exist, use the full date range specified in yaml
 
@@ -75,7 +75,7 @@ def extract_unemp(
 
     df_unemp = pd.json_normalize(data=all_data)
 
-    if df_unemp.empty:
+    if df_unemp.empty:  # meaning our table is updated with latest data in WB
         print(f"{date_range} data is not yet available in World Bank.")
     else:
         distinct_years = df_unemp["date"].unique()

@@ -1,9 +1,12 @@
 name: gem
 config:
   region_classification_path: "data/CLASS_CSV.csv"
-  log_folder_path: ""
-  date_range: "2021:2022"
+  log_folder_path: "./etl_project/logs"
+  date_range: "2020:2023"
   indicator_unemp: "SL.UEM.TOTL.ZS"
   indicator_cpi: ""
   indicator_export: "TX.VAL.MRCH.XD.WD"
   indicator_import: ""
+  schedule:
+    run_seconds: 5
+    poll_seconds: 2

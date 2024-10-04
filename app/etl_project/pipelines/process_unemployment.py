@@ -6,288 +6,170 @@ import pandas as pd
 import yaml
 from pathlib import Path
 from importlib import import_module
-from sqlalchemy import (
-    Column,
-    Float,
-    Integer,
-    MetaData,
-    String,
-    Table,
-    create_engine,
-    text,
-    inspect,
+from sqlalchemy import (Column, Float, Integer, MetaData, String, Table)
+from etl_project.connectors.postgresql import PostgreSqlClient
+from etl_project.assets.metadata_logging import MetaDataLogging, MetaDataLoggingStatus
+from etl_project.assets.pipeline_logging import PipelineLogging
+from etl_project.assets.extract_load_transform import (
+    extract,
+    transform,
+    load,
+    transform_sql
 )
-from sqlalchemy.dialects import postgresql
-from sqlalchemy.engine import URL, Engine
-from sqlalchemy.schema import CreateTable
+import schedule
+import time
 
 
-# extract from WB
-def extract_unemp(
-    engine: Engine, sql_template: Template, wb_indicator, wb_daterange
-) -> pd.DataFrame:
-    # general assumption is that we want our tables to be as updated as WB
+# Define a unified function to run the entire ETL pipeline
+def pipeline(config: dict, pipeline_logging: PipelineLogging):
+    pipeline_logging.logger.info("Starting ETL pipeline")
+    # set up environment variables
+    pipeline_logging.logger.info("Getting pipeline environment variables")
+    SERVER_NAME = os.environ.get("SERVER_NAME")
+    DATABASE_NAME = os.environ.get("DATABASE_NAME")
+    DB_USERNAME = os.environ.get("DB_USERNAME")
+    DB_PASSWORD = os.environ.get("DB_PASSWORD")
+    PORT = os.environ.get("PORT")
 
-    extract_type = sql_template.make_module().config.get(
-        "extract_type"
-    )  # first, get the extract type
-    if extract_type == "full":
-        date_range = wb_daterange  # use the full date range specified in yaml
-    elif extract_type == "incremental":
-        # get max year in postgres table. year is the incremental column.
-        # first, check if table exists
-        source_table_name = sql_template.make_module().config.get("source_table_name")
-        if inspect(engine).has_table(source_table_name):
-            incremental_column = sql_template.make_module().config.get(
-                "incremental_column"
-            )
-            with engine.connect() as connection:
-                with connection.begin():  # Start a transaction
-                    incremental_value = connection.execute(
-                        text(
-                            f"select max({incremental_column}) as incremental_value from {source_table_name}"
-                        )
-                    ).scalar()
-
-                    date_range = f"{incremental_value + 1}:{incremental_value + 1}"  # max year + 1
-        else:
-            date_range = wb_daterange  # if table doesn't exist, use the full date range specified in yaml
-
-    print(f"Date range param for api: {date_range}")
-
-    indicator = wb_indicator
-    base_url = f"https://api.worldbank.org/v2/countries/all/indicators/{indicator}?"
-    params = {"date": date_range, "format": "json", "page": 1}  # Start at page 1
-
-    all_data = []
-
-    while True:
-        response = requests.get(base_url, params=params)
-        response_data = response.json()
-
-        if len(response_data) < 2 or not response_data[1]:  # Check if there's data
-            break
-
-        all_data.extend(response_data[1])  # Add current page data to all_data
-
-        # Update parameters for the next page
-        params["page"] += 1
-
-    df_unemp = pd.json_normalize(data=all_data)
-
-    if df_unemp.empty:  # meaning our table is updated with latest data in WB
-        print(f"{date_range} data is not yet available in World Bank.")
-    else:
-        distinct_years = df_unemp["date"].unique()
-        print(f"Year extracted from World Bank api: {distinct_years}")
-
-    print("Completed extract")
-    return df_unemp
-
-
-# transfom
-def transform_unemp(df_unemp: pd.DataFrame, region_file_path) -> pd.DataFrame:
-
-    # select some columns
-    df_selected = df_unemp[
-        [
-            "date",
-            "countryiso3code",
-            "country.value",
-            "indicator.id",
-            "indicator.value",
-            "value",
-        ]
-    ]
-
-    # rename column names
-    df_renamed = df_selected.rename(
-        columns={
-            "date": "year",
-            "countryiso3code": "country_code",
-            "country.value": "country_name",
-            "indicator.id": "indicator_id",
-            "indicator.value": "indicator_value",
-        }
+    postgresql_client = PostgreSqlClient(
+        server_name=SERVER_NAME,
+        database_name=DATABASE_NAME,
+        username=DB_USERNAME,
+        password=DB_PASSWORD,
+        port=PORT,
     )
 
-    # Remove NaN from the Year and value column
-    df_cleaned = df_renamed.dropna(subset=["year"]).dropna(subset=["value"])
-
-    # change datatype of year
-    df_cleaned = df_cleaned.astype({"year": int})
-
-    df_region = pd.read_csv(
-        region_file_path, usecols=["Code", "Region"]
-    )  # "data/CLASS_CSV.csv"
-
-    df_region = df_region.rename(columns={"Region": "region"})
-
-    # merge with region class file
-    df_final = pd.merge(
-        left=df_cleaned,
-        right=df_region,
-        left_on="country_code",
-        right_on="Code",
+    # Execute Extract, also has the api request
+    pipeline_logging.logger.info("Extracting data from database monitor API")
+    df_extracted = extract(
+        postgresql_client=postgresql_client,
+        extract_type = extract_type,
+        incremental_column = incremental_column,
+        table_name = extract_table_name,
+        wb_indicator=wb_indicator,
+        wb_daterange=wb_daterange,
     )
+    pipeline_logging.logger.info("Extract step completed")
 
-    df_final = df_final.drop(["Code"], axis=1)
+    # Execute Transform
+    pipeline_logging.logger.info("Transforming dataframes")
+    df_transformed = transform(df_extracted,region_file_path=region_file_path)
+    pipeline_logging.logger.info("Transform step completed")
 
-    print("Completed transform")
-    return df_final
-
-
-# load into postgres
-
-
-def load(df: pd.DataFrame, engine):
-
-    print("Starting load")
-
-    # it is not automatic with pandas, we need to write exactly what the table looks like
-    meta = MetaData()
-    export_table = Table(
+    # Execute Load
+    pipeline_logging.logger.info("Loading data to postgres")
+    
+    metadata = MetaData()
+    table = Table(
         "unemployment",
-        meta,
+        metadata,
         Column("year", Integer, primary_key=True),
         Column("country_code", String, primary_key=True),
         Column("country_name", String),
         Column("indicator_id", String),
         Column("indicator_value", String),
         Column("value", Float),
-        Column("region", String),  # ADDING REGION!
+        Column("region", String)
     )
 
-    meta.create_all(engine)  # creates table if it does not exists
-
-    # Create the upsert statement
-    insert_statement = postgresql.insert(export_table).values(
-        df.to_dict(orient="records")
+    load(
+        df=df_transformed,
+        postgresql_client=postgresql_client,
+        table=table,
+        metadata=metadata,
+        load_method="upsert",
     )
 
-    # Set up the conflict resolution statement
-    upsert_statement = insert_statement.on_conflict_do_update(
-        index_elements=["year", "country_code"],
-        set_={
-            c.key: c
-            for c in insert_statement.excluded
-            if c.key not in ["year", "country_code"]
-        },
+    #Execute 2nd-level transformation i.e., create a unemployment_ranked table using jinja and partition
+    transform_environment = Environment(
+        loader=FileSystemLoader("etl_project/sql/transform")
+    )
+    transform_table_name = "unemployment_ranked"
+    transform_sql(
+        table_name=transform_table_name,
+        postgresql_client=postgresql_client,
+        environment=transform_environment
     )
 
-    # Execute the upsert statement
-    # with engine.connect() as connection:
-    #   connection.execute(upsert_statement)
+    pipeline_logging.logger.info("Pipeline run successful")
+
+
+def run_pipeline(
+    pipeline_name: str,
+    postgresql_logging_client: PostgreSqlClient,
+    pipeline_config: dict,
+):
+    pipeline_logging = PipelineLogging(
+        pipeline_name=pipeline_config.get("name"),
+        log_folder_path=pipeline_config.get("config").get("log_folder_path"),
+    )
+    metadata_logger = MetaDataLogging(
+        pipeline_name=pipeline_name,
+        postgresql_client=postgresql_logging_client,
+        config=pipeline_config.get("config"),
+    )
     try:
-        with engine.connect() as connection:
-            with connection.begin():  # Start a transaction
-                connection.execute(upsert_statement)
-                print("Upsert operation completed successfully!")
-    except Exception as e:
-        print(f"An error occurred during upsert: {e}")
-
-    print("Completed load")
-
-
-# do further transformation using jinja and partition - create an unemployment_ranked table
-def transform_sql(engine: Engine, sql_template: Template, table_name: str):
-    exec_sql = f"""
-        drop table if exists {table_name};
-        create table {table_name} as (
-             {sql_template.render()}
+        metadata_logger.log()  # log start
+        pipeline(
+            config=pipeline_config.get("config"), pipeline_logging=pipeline_logging
         )
-    """
-
-    try:
-        with engine.connect() as connection:
-            with connection.begin():  # Start a transaction
-                connection.execute(text(exec_sql))
-                print(f"Table {table_name} created successfully.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+        metadata_logger.log(
+            status=MetaDataLoggingStatus.RUN_SUCCESS, logs=pipeline_logging.get_logs()
+        )  # log end
+        pipeline_logging.logger.handlers.clear()
+    except BaseException as e:
+        pipeline_logging.logger.error(f"Pipeline run failed. See detailed logs: {e}")
+        metadata_logger.log(
+            status=MetaDataLoggingStatus.RUN_FAILURE, logs=pipeline_logging.get_logs()
+        )  # log error
+        pipeline_logging.logger.handlers.clear()
 
 
 if __name__ == "__main__":
     load_dotenv()
+    LOGGING_SERVER_NAME = os.environ.get("LOGGING_SERVER_NAME")
+    LOGGING_DATABASE_NAME = os.environ.get("LOGGING_DATABASE_NAME")
+    LOGGING_USERNAME = os.environ.get("LOGGING_USERNAME")
+    LOGGING_PASSWORD = os.environ.get("LOGGING_PASSWORD")
+    LOGGING_PORT = os.environ.get("LOGGING_PORT")
 
-    DB_USERNAME = os.environ.get("DB_USERNAME")
-    DB_PASSWORD = os.environ.get("DB_PASSWORD")
-    SERVER_NAME = os.environ.get("SERVER_NAME")
-    DATABASE_NAME = os.environ.get("DATABASE_NAME")
-    PORT = os.environ.get("PORT")
-
-    connection_url = URL.create(
-        drivername="postgresql+pg8000",
-        username=DB_USERNAME,
-        password=DB_PASSWORD,
-        host=SERVER_NAME,
-        port=PORT,
-        database=DATABASE_NAME,
+    postgresql_logging_client = PostgreSqlClient(
+        server_name=LOGGING_SERVER_NAME,
+        database_name=LOGGING_DATABASE_NAME,
+        username=LOGGING_USERNAME,
+        password=LOGGING_PASSWORD,
+        port=LOGGING_PORT,
     )
-    # creates the engine to connect to the db
-    target_engine = create_engine(connection_url)
-
-    # LOGGING_SERVER_NAME = os.environ.get("LOGGING_SERVER_NAME")
-    # LOGGING_DATABASE_NAME = os.environ.get("LOGGING_DATABASE_NAME")
-    # LOGGING_USERNAME = os.environ.get("LOGGING_USERNAME")
-    # LOGGING_PASSWORD = os.environ.get("LOGGING_PASSWORD")
-    # LOGGING_PORT = os.environ.get("LOGGING_PORT")
 
     # get config variables
-
     yaml_file_path = "etl_project/pipelines/gem.yaml"
-
     if Path(yaml_file_path).exists():
         with open(yaml_file_path) as yaml_file:
-            config = yaml.safe_load(yaml_file)
-            wb_config = config.get("config")
-            wb_indicator = wb_config.get("indicator_unemp")
-            wb_daterange = wb_config.get("date_range")
-            region_file_path = wb_config.get("region_classification_path")
+            pipeline_config = yaml.safe_load(yaml_file)
+            config = pipeline_config.get("config")
+            PIPELINE_NAME = pipeline_config.get("name")
+            
+            wb_indicator = config.get("indicator_unemp")
+            wb_daterange = config.get("date_range")
+            region_file_path = config.get("region_classification_path")
 
-            # pipeline_config = yaml.safe_load(yaml_file)
-            # PIPELINE_NAME = pipeline_config.get("indicator")
+            incremental_column = pipeline_config.get("extract").get("incremental_column")
+            extract_type = pipeline_config.get("extract").get("extract_type")
+            extract_table_name = "unemployment" #? how do we make this dynamic to include all our tables
+
     else:
         raise Exception(
             f"Missing {yaml_file_path} file! Please create the yaml file with at least a `name` key for the pipeline name."
         )
-
-    # incremental extract from api
-    extract_environment = Environment(
-        loader=FileSystemLoader("etl_project/sql/extract")
-    )
-    extract_template_name = "unemployment_incremental"
-    extract_sql_template = extract_environment.get_template(
-        f"{extract_template_name}.sql"
-    )
-
-    df_unemp = extract_unemp(
-        engine=target_engine,
-        sql_template=extract_sql_template,
-        wb_indicator=wb_indicator,
-        wb_daterange=wb_daterange,
+    
+    # set schedule
+    schedule.every(pipeline_config.get("schedule").get("run_seconds")).seconds.do(
+        run_pipeline,
+        pipeline_name=PIPELINE_NAME,
+        postgresql_logging_client=postgresql_logging_client,
+        pipeline_config=pipeline_config
     )
 
-    if df_unemp.empty:
-        print("Incremental extract is empty. No data to transform or load.")
-    else:
-        # transform
-        df_transformed = transform_unemp(df_unemp, region_file_path=region_file_path)
-
-        # load into postgres
-        load(df=df_transformed, engine=target_engine)
-
-        # do further transformation i.e., create a unemployment_ranked table using jinja and partition
-
-        transform_environment = Environment(
-            loader=FileSystemLoader("etl_project/sql/transform")
-        )
-        transform_table_name = "unemployment_ranked"
-        transform_sql_template = transform_environment.get_template(
-            f"{transform_table_name}.sql"
-        )
-        transform_sql(
-            engine=target_engine,
-            sql_template=transform_sql_template,
-            table_name=transform_table_name,
-        )
+    while True:
+        schedule.run_pending()
+        time.sleep(pipeline_config.get("schedule").get("poll_seconds"))

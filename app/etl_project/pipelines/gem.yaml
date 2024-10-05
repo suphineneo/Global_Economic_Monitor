@@ -13,4 +13,8 @@ schedule:
 extract:
   extract_type: "incremental"
   incremental_column: "year"
+table_names:
+    SL.UEM.TOTL.ZS: "unemployment"
+    TX.VAL.MRCH.XD.WD: "exports"
+    TX.VAL.MRCH.CD.WT: "imports"
 

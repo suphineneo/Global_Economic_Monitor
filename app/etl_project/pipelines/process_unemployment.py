@@ -155,7 +155,10 @@ if __name__ == "__main__":
 
             incremental_column = pipeline_config.get("extract").get("incremental_column")
             extract_type = pipeline_config.get("extract").get("extract_type")
-            extract_table_name = "unemployment" #? how do we make this dynamic to include all our tables
+            #extract_table_name = "unemployment" #? how do we make this dynamic to include all our tables
+            extract_table_name = (
+                pipeline_config.get("table_names").get(wb_indicator)
+            )
 
     else:
         raise Exception(

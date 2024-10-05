@@ -12,12 +12,27 @@ cd Global_Economic_Monitor
 python -m pip install -r requirements.txt
 
 cd app
-python -m etl_project.pipelines.process_unemployment
 ```
 
 Clone `template.env` into `.env` file and update it with your environment variables
 - This will be used for local development and testing
 - The `.env` file will not be committed into the Git repository
+
+
+## Run on local machine
+- `process_exports`
+  - logs to DB and runs on a schedule
+  - outputs to DB tables: `exports` and `pipeline_logs`
+```bash
+python -m etl_project.pipelines.process_exports
+```
+
+- `process_unemployment`
+  - does not log to DB, but does 2 levels of transforms, with SQL `rank()`
+  - outputs to DB tables: `unemployment` and `unemployment_ranked`
+```bash
+python -m etl_project.pipelines.process_unemployment
+```
 
 
 ## Test
@@ -27,9 +42,16 @@ Clone `template.env` into `.env` file and update it with your environment variab
 
 
 ## Build Docker containers
+- Build and run locally
 ```bash
 docker build --platform=linux/amd64 -t global_economic_monitor_etl .
 docker run global_economic_monitor_etl:latest
+```
+
+- Build and push to ECR
+```bash
+# docker build --platform=linux/amd64 -t global_economic_monitor_etl:process_exports .
+# docker build --platform=linux/amd64 -t global_economic_monitor_etl:process_unemployment .
 ```
 
 

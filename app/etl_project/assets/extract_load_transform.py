@@ -159,7 +159,7 @@ def load(
             raise Exception(
                 "Please specify a correct load method: [insert, upsert, overwrite]"
             )
-
+        print("Completed load")
 
 # do further transformation using jinja and partition - create an unemployment_ranked table
 def transform_sql(table_name: str, postgresql_client: PostgreSqlClient, environment: Environment ):

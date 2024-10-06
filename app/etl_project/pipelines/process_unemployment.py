@@ -22,7 +22,7 @@ import time
 
 # Define a unified function to run the entire ETL pipeline
 def pipeline(config: dict, pipeline_logging: PipelineLogging):
-    pipeline_logging.logger.info("Starting ETL pipeline")
+    pipeline_logging.logger.info(f"Starting ETL pipeline - {wb_indicator}")
     # set up environment variables
     pipeline_logging.logger.info("Getting pipeline environment variables")
     SERVER_NAME = os.environ.get("SERVER_NAME")
@@ -61,7 +61,7 @@ def pipeline(config: dict, pipeline_logging: PipelineLogging):
     
     metadata = MetaData()
     table = Table(
-        "unemployment",
+        extract_table_name,
         metadata,
         Column("year", Integer, primary_key=True),
         Column("country_code", String, primary_key=True),
@@ -79,18 +79,22 @@ def pipeline(config: dict, pipeline_logging: PipelineLogging):
         metadata=metadata,
         load_method="upsert",
     )
+    pipeline_logging.logger.info("Load step completed")
 
+    pipeline_logging.logger.info("Create ranked table started")
     #Execute 2nd-level transformation i.e., create a unemployment_ranked table using jinja and partition
     transform_environment = Environment(
         loader=FileSystemLoader("etl_project/sql/transform")
     )
-    transform_table_name = "unemployment_ranked"
+
+    transform_table_name = f"{extract_table_name}_ranked" 
     transform_sql(
         table_name=transform_table_name,
         postgresql_client=postgresql_client,
         environment=transform_environment
     )
 
+    pipeline_logging.logger.info("Create ranked table completed")
     pipeline_logging.logger.info("Pipeline run successful")
 
 
@@ -98,6 +102,8 @@ def run_pipeline(
     pipeline_name: str,
     postgresql_logging_client: PostgreSqlClient,
     pipeline_config: dict,
+    #wb_indicator: str,
+    #extract_table_name: str
 ):
     pipeline_logging = PipelineLogging(
         pipeline_name=pipeline_config.get("name"),
@@ -110,6 +116,7 @@ def run_pipeline(
     )
     try:
         metadata_logger.log()  # log start
+
         pipeline(
             config=pipeline_config.get("config"), pipeline_logging=pipeline_logging
         )
@@ -149,30 +156,38 @@ if __name__ == "__main__":
             config = pipeline_config.get("config")
             PIPELINE_NAME = pipeline_config.get("name")
             
-            wb_indicator = config.get("indicator_unemp")
             wb_daterange = config.get("date_range")
             region_file_path = config.get("region_classification_path")
 
             incremental_column = pipeline_config.get("extract").get("incremental_column")
             extract_type = pipeline_config.get("extract").get("extract_type")
-            #extract_table_name = "unemployment" #? how do we make this dynamic to include all our tables
-            extract_table_name = (
-                pipeline_config.get("table_names").get(wb_indicator)
-            )
-
+            table_config = pipeline_config.get("table_names")
+            keys = list(table_config.keys()) #get key pair values
+           
     else:
         raise Exception(
             f"Missing {yaml_file_path} file! Please create the yaml file with at least a `name` key for the pipeline name."
         )
+
+    # Set the run interval
+    run_seconds = pipeline_config.get("schedule", {}).get("run_seconds", 10)
     
-    # set schedule
-    schedule.every(pipeline_config.get("schedule").get("run_seconds")).seconds.do(
-        run_pipeline,
-        pipeline_name=PIPELINE_NAME,
-        postgresql_logging_client=postgresql_logging_client,
-        pipeline_config=pipeline_config
-    )
+    #Dynamic looping of wb indicators so we only need to update the yaml file with new indicators
+    #Iterate over table_names key-value pairs to get each wb indicator and table name
 
     while True:
-        schedule.run_pending()
+        for wb_indicator in keys:
+            extract_table_name = table_config[wb_indicator]
+            print(f"wb_indicator: {wb_indicator}, extract_table_name: {extract_table_name}")
+            
+            #call run_pipeline for each indicator
+            run_pipeline(
+            pipeline_name=PIPELINE_NAME,
+            postgresql_logging_client=postgresql_logging_client,
+            pipeline_config=pipeline_config
+            )
+            
+            time.sleep(run_seconds)
+
         time.sleep(pipeline_config.get("schedule").get("poll_seconds"))
+            

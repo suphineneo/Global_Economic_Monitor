@@ -12,8 +12,9 @@ class PipelineLogging:
         logger.setLevel(logging.INFO)
 
         # Create log file path
+        current_time = time.strftime("%Y-%m-%d_%H-%M-%S")
         self.file_path = (
-            f"{self.log_folder_path}/{self.pipeline_name}_{time.time()}.log"
+            f"{self.log_folder_path}/{self.pipeline_name}_{current_time}.log"
         )
 
         # Create handlers

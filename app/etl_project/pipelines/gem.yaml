@@ -2,11 +2,17 @@ name: gem
 config:
   region_classification_path: "etl_project/data/CLASS_CSV.csv"
   log_folder_path: "etl_project/logs"
-  date_range: "2020:2023"
-  indicator_unemp: "SL.UEM.TOTL.ZS"
-  indicator_cpi: ""
-  indicator_export: "TX.VAL.MRCH.XD.WD"
-  indicator_import: ""
-  schedule:
-    run_seconds: 5
-    poll_seconds: 2
+  date_range: "2019:2021"
+schedule:
+    run_seconds: 8
+    poll_seconds: 5
+extract:
+  extract_type: "incremental"
+  incremental_column: "year"
+table_names:
+    SL.UEM.TOTL.ZS: "unemployment"
+    TX.VAL.MRCH.XD.WD: "exports"
+    NV.IND.TOTL.KD.ZG: "industrial"
+    FP.CPI.TOTL: "cpi"
+    NY.GDP.MKTP.CD: "gdp"
+

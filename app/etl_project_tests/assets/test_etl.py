@@ -1,11 +1,8 @@
 import os
-from pathlib import Path
-from etl_project.assets.extract_load_transform import extract, transform, load
+from etl_project.assets.extract_load_transform import extract, transform
 import pytest
-import requests
 from dotenv import load_dotenv
 import pandas as pd
-from sqlalchemy import Table, MetaData, Column, String, Integer
 from etl_project.connectors.postgresql import PostgreSqlClient
 from etl_project.connectors.data_fetcher import fetch_data_from_api
 
@@ -119,12 +116,12 @@ def setup_transformed_gem_df():
     ]
 
     df = pd.DataFrame(data)
-    df["year"] = df["year"].astype("int32")
+    df["year"] = df["year"].astype("int64")
     return df
 
 
 def test_transform(setup_input_GEM_df, setup_transformed_gem_df):
-    region_file_path = r"..\\data\\CLASS_CSV.csv"
+    region_file_path = "data/CLASS_CSV.csv"
     expected_df = setup_transformed_gem_df
     df = transform(df=setup_input_GEM_df, region_file_path=region_file_path)
     pd.testing.assert_frame_equal(left=df, right=expected_df, check_exact=True)

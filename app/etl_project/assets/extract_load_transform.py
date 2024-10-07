@@ -5,9 +5,15 @@ from sqlalchemy import Table, MetaData, inspect, text
 from sqlalchemy.engine import URL, Engine
 from etl_project.connectors.postgresql import PostgreSqlClient
 
+
 # extract from WB
 def extract(
-    postgresql_client: PostgreSqlClient, extract_type, incremental_column, table_name, wb_indicator, wb_daterange
+    postgresql_client: PostgreSqlClient,
+    extract_type,
+    incremental_column,
+    table_name,
+    wb_indicator,
+    wb_daterange,
 ) -> pd.DataFrame:
     """
     Extract data from the monitor database
@@ -24,10 +30,12 @@ def extract(
             sql_response = postgresql_client.run_sql(
                 text(
                     f"select max({incremental_column}) as incremental_value from {table_name}"
-                    )
                 )
+            )
             incremental_value = sql_response[0].get("incremental_value")
-            date_range = f"{incremental_value + 1}:{incremental_value + 1}"  # max year + 1
+            date_range = (
+                f"{incremental_value + 1}:{incremental_value + 1}"  # max year + 1
+            )
         else:
             date_range = wb_daterange  # if table doesn't exist, use the full date range specified in yaml
 
@@ -54,7 +62,9 @@ def extract(
     df = pd.json_normalize(data=all_data)
 
     if df.empty:  # this means our table is already updated with latest data in WB
-        print(f"Incremental extract is empty. {date_range} data is not yet available in World Bank.")
+        print(
+            f"Incremental extract is empty. {date_range} data is not yet available in World Bank."
+        )
     else:
         distinct_years = df["date"].unique()
         print(f"Year extracted from World Bank api: {distinct_years}")
@@ -97,7 +107,7 @@ def transform(df: pd.DataFrame, region_file_path) -> pd.DataFrame:
         df_cleaned = df_renamed.dropna(subset=["year"]).dropna(subset=["value"])
 
         # change datatype of year
-        df_cleaned = df_cleaned.astype({"year": int})
+        df_cleaned = df_cleaned.astype({"year": "int64"})
 
         df_region = pd.read_csv(
             region_file_path, usecols=["Code", "Region"]
@@ -120,13 +130,14 @@ def transform(df: pd.DataFrame, region_file_path) -> pd.DataFrame:
 
     return pd.DataFrame(df)
 
+
 # load into postgres
 def load(
     df: pd.DataFrame,
     postgresql_client: PostgreSqlClient,
     table: Table,
     metadata: MetaData,
-    load_method
+    load_method,
 ) -> pd.DataFrame:
     """
     Load dataframe to a database.
@@ -137,7 +148,7 @@ def load(
             metadata: sqlalchemy metadata
             load_method: supports one of: [insert, upsert, overwrite]
     """
-  
+
     if df.empty:
         print("Incremental extract is empty. No data to load.")
     else:
@@ -161,13 +172,14 @@ def load(
             )
         print("Completed load")
 
-# do further transformation using jinja and partition - create an unemployment_ranked table
-def transform_sql(table_name: str, postgresql_client: PostgreSqlClient, environment: Environment ):
 
-    transform_sql_template = environment.get_template(
-        f"{table_name}.sql"
-    )
-    
+# do further transformation using jinja and partition - create an unemployment_ranked table
+def transform_sql(
+    table_name: str, postgresql_client: PostgreSqlClient, environment: Environment
+):
+
+    transform_sql_template = environment.get_template(f"{table_name}.sql")
+
     exec_sql = f"""
         drop table if exists {table_name};
         create table {table_name} as (
@@ -175,4 +187,3 @@ def transform_sql(table_name: str, postgresql_client: PostgreSqlClient, environm
         )
     """
     postgresql_client.execute_sql(exec_sql)
-    

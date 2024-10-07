@@ -4,8 +4,8 @@ config:
   log_folder_path: "etl_project/logs"
   date_range: "2019:2021"
 schedule:
-    run_seconds: 8
-    poll_seconds: 5
+    wait_interval_seconds: 10
+    incremental_run_interval_seconds: 5
 extract:
   extract_type: "incremental"
   incremental_column: "year"
@@ -15,4 +15,3 @@ table_names:
     NV.IND.TOTL.KD.ZG: "industrial"
     FP.CPI.TOTL: "cpi"
     NY.GDP.MKTP.CD: "gdp"
-

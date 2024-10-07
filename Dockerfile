@@ -8,4 +8,4 @@ RUN pip install -r requirements.txt
 
 COPY /app .
 
-CMD ["python", "-m", "etl_project.pipelines.process_exports"]
+CMD ["python", "-m", "etl_project.pipelines.global_economic_monitor"]

@@ -1,3 +1,4 @@
+from app.etl_project.connectors.data_fetcher import fetch_data_from_api
 from jinja2 import Environment, Template
 import pandas as pd
 import requests
@@ -41,25 +42,7 @@ def extract(
 
     print(f"Date range param for api: {date_range}")
 
-    indicator = wb_indicator
-    base_url = f"https://api.worldbank.org/v2/countries/all/indicators/{indicator}?"
-    params = {"date": date_range, "format": "json", "page": 1}  # Start at page 1
-
-    all_data = []
-
-    while True:
-        response = requests.get(base_url, params=params)
-        response_data = response.json()
-
-        if len(response_data) < 2 or not response_data[1]:  # Check if there's data
-            break
-
-        all_data.extend(response_data[1])  # Add current page data to all_data
-
-        # Update parameters for the next page
-        params["page"] += 1
-
-    df = pd.json_normalize(data=all_data)
+    df = fetch_data_from_api(indicator=wb_indicator, date_range=date_range)
 
     if df.empty:  # this means our table is already updated with latest data in WB
         print(

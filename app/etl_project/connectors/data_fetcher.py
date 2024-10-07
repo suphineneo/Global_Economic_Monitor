@@ -1,6 +1,5 @@
 import requests
 import pandas as pd
-from datetime import datetime
 
 
 def fetch_data_from_api(indicator: str, date_range: str) -> pd.DataFrame:
@@ -18,7 +17,6 @@ def fetch_data_from_api(indicator: str, date_range: str) -> pd.DataFrame:
     params = {"date": date_range, "format": "json", "page": 1}  # Start at page 1
 
     all_data = []
-    current_year = datetime.now().year  # Get the current year
 
     while True:
         response = requests.get(base_url, params=params)
@@ -28,14 +26,6 @@ def fetch_data_from_api(indicator: str, date_range: str) -> pd.DataFrame:
             break
 
         all_data.extend(response_data[1])  # Add current page data to all_data
-
-        # Check if the extracted data contains the current year
-        extracted_years = [item["date"] for item in response_data[1]]
-        if current_year in extracted_years:
-            print(
-                f"Stopping extract because current year {current_year} has been reached."
-            )
-            break
 
         # Update parameters for the next page
         params["page"] += 1

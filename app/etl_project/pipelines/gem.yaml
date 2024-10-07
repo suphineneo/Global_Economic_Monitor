@@ -3,10 +3,6 @@ config:
   region_classification_path: "etl_project/data/CLASS_CSV.csv"
   log_folder_path: "etl_project/logs"
   date_range: "2019:2021"
-  indicator_unemp: "SL.UEM.TOTL.ZS"
-  indicator_cpi: ""
-  indicator_export: "TX.VAL.MRCH.XD.WD"
-  indicator_industrial: "NV.IND.TOTL.KD.ZG"
 schedule:
     run_seconds: 8
     poll_seconds: 5

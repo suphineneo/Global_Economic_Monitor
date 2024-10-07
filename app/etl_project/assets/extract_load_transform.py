@@ -1,4 +1,4 @@
-from app.etl_project.connectors.data_fetcher import fetch_data_from_api
+from etl_project.connectors.data_fetcher import fetch_data_from_api
 from jinja2 import Environment, Template
 import pandas as pd
 import requests

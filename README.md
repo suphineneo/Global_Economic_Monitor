@@ -38,7 +38,8 @@ python -m etl_project.pipelines.process_unemployment
 
 ## Test
 ```bash
-# pytest ...
+cd etl_project_tests
+python -m pytest
 ```
 
 

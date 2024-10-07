@@ -12,12 +12,27 @@ cd Global_Economic_Monitor
 python -m pip install -r requirements.txt
 
 cd app
-python -m etl_project.pipelines.process_unemployment
 ```
 
 Clone `template.env` into `.env` file and update it with your environment variables
 - This will be used for local development and testing
 - The `.env` file will not be committed into the Git repository
+
+
+## Run on local machine
+- `process_exports`
+  - logs to DB and runs on a schedule
+  - outputs to DB tables: `exports` and `pipeline_logs`
+```bash
+python -m etl_project.pipelines.process_exports
+```
+
+- `process_unemployment`
+  - does not log to DB, but does 2 levels of transforms, with SQL `rank()`
+  - outputs to DB tables: `unemployment` and `unemployment_ranked`
+```bash
+python -m etl_project.pipelines.process_unemployment
+```
 
 
 ## Test
@@ -27,13 +42,22 @@ Clone `template.env` into `.env` file and update it with your environment variab
 
 
 ## Build Docker containers
+- Build and run locally
+- Change the Dockerfile to specify which `process_*` pipeline to be built and run
 ```bash
 docker build --platform=linux/amd64 -t global_economic_monitor_etl .
-docker run global_economic_monitor_etl:latest
+docker run --env-file .env global_economic_monitor_etl:latest
+```
+
+- Build and push to ECR
+```bash
+docker build --platform=linux/amd64 -t global_economic_monitor_etl:process_exports .
+# docker build --platform=linux/amd64 -t global_economic_monitor_etl:process_unemployment .
 ```
 
 
 ## Run on local machine in a docker-compose cluster
+- refer to `template.env` for specifying the `.env` file for a `docker-compose` setup
 ```bash
 # start postgres and etl containers and link them to each other
 docker-compose up
@@ -50,6 +74,7 @@ docker-compose down
 
 ## Deploy and run on AWS
 ```bash
-docker tag global_economic_monitor_etl:latest 084375572515.dkr.ecr.ap-southeast-1.amazonaws.com/global_economic_monitor_etl:latest
-docker push 084375572515.dkr.ecr.ap-southeast-1.amazonaws.com/global_economic_monitor_etl:latest
+docker tag global_economic_monitor_etl:process_exports 084375572515.dkr.ecr.ap-southeast-1.amazonaws.com/global_economic_monitor_etl:process_exports
+
+docker push 084375572515.dkr.ecr.ap-southeast-1.amazonaws.com/global_economic_monitor_etl:process_exports
 ```

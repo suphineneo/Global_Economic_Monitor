@@ -18,4 +18,5 @@ table_names:
     TX.VAL.MRCH.XD.WD: "exports"
     NV.IND.TOTL.KD.ZG: "industrial"
     FP.CPI.TOTL: "cpi"
+    NY.GDP.MKTP.CD: "gdp"
 

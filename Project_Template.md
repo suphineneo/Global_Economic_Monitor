@@ -28,24 +28,26 @@ What datasets are you sourcing from? How frequently are the source datasets upda
 > https://datacatalog.worldbank.org/search/dataset/0037798/Global-Economic-Monitor
 >
 > Specifically, we will start exploring these data sets
-> - Unemployment Rate, seas. adj.
-> - Industrial Production, constant 2010 US$, seas. adj.
-> - Exports Merchandise, Customs, Price, US$, seas. adj.
-> - CPI Price, nominal, seas. adj.
+> - Unemployment Rate
+> - Industrial Production
+> - Exports Merchandise
+> - CPI Price
+> - GDP
 > 
-> The source datasets are available as static files and also via API.
-> The data is updated at a daily granularity.
+> The source datasets are available via API. The data is updated at a yearly granularity.
 
 
 ## Solution architecture
 
-> (t.b.d)
+> (to-do)
 
 How are we going to get data flowing from source to serving? What components and services will we combine to implement the solution? How do we automate the entire running of the solution?
 
-- What data extraction patterns are you going to be using? TBC
-- What data loading patterns are you going to be using?
-- What data transformation patterns are you going to be performing?
+> - What data extraction patterns are you going to be using? Incremental Extract
+> - What data loading patterns are you going to be using? Upsert
+> - What data transformation patterns are you going to be performing?
+>   - transform raw data: filter, rename, dropna, change column type, merge
+>   - transform_sql : using SQL queries and window function rank()
 
 ## Breakdown of tasks
 

@@ -73,7 +73,7 @@ docker-compose down
 
 ## Deploy and run on AWS
 ```bash
-docker tag global_economic_monitor_etl:latest 084375572515.dkr.ecr.ap-southeast-1.amazonaws.com/global_economic_monitor_etl:latest
+docker tag global_economic_monitor_etl:latest ${CONTAINER_REGISTRY_URL}/global_economic_monitor_etl:latest
 
-docker push 084375572515.dkr.ecr.ap-southeast-1.amazonaws.com/global_economic_monitor_etl:latest
+docker push ${CONTAINER_REGISTRY_URL}/global_economic_monitor_etl:latest
 ```

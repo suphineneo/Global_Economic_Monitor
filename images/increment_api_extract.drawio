@@ -14,7 +14,7 @@
           <mxGeometry x="125" y="80" width="80" height="30" as="geometry" />
         </mxCell>
         <mxCell id="ToWkHcQtuceBjEnoqtzV-5" value="2/ Incremental load" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" parent="1" vertex="1">
-          <mxGeometry x="280" y="375" width="90" height="30" as="geometry" />
+          <mxGeometry x="280" y="367.5" width="90" height="30" as="geometry" />
         </mxCell>
         <mxCell id="ToWkHcQtuceBjEnoqtzV-7" value="postgres" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" parent="1" vertex="1">
           <mxGeometry x="490" y="80" width="80" height="30" as="geometry" />
@@ -107,13 +107,13 @@
           <mxGeometry x="135" y="320" width="80" height="30" as="geometry" />
         </mxCell>
         <mxCell id="y2_0GPmmEiRgnqfZBJWN-3" value="1/ Full load" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" vertex="1" parent="1">
-          <mxGeometry x="270" y="158.75" width="90" height="30" as="geometry" />
+          <mxGeometry x="270" y="130" width="90" height="30" as="geometry" />
         </mxCell>
         <mxCell id="y2_0GPmmEiRgnqfZBJWN-4" value="postgres" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" vertex="1" parent="1">
           <mxGeometry x="500" y="320" width="80" height="30" as="geometry" />
         </mxCell>
         <mxCell id="y2_0GPmmEiRgnqfZBJWN-5" value="" style="verticalLabelPosition=bottom;html=1;verticalAlign=top;align=center;strokeColor=none;fillColor=#00BEF2;shape=mxgraph.azure.website_generic;pointerEvents=1;" vertex="1" parent="1">
-          <mxGeometry x="110" y="390" width="80" height="67.5" as="geometry" />
+          <mxGeometry x="120" y="388.75" width="80" height="67.5" as="geometry" />
         </mxCell>
         <mxCell id="y2_0GPmmEiRgnqfZBJWN-6" value="Table" style="shape=table;startSize=20;container=1;collapsible=0;childLayout=tableLayout;strokeColor=#56517e;fontSize=14;fillColor=#d0cee2;" vertex="1" parent="1">
           <mxGeometry x="410" y="120" width="250" height="120" as="geometry" />
@@ -173,7 +173,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="y2_0GPmmEiRgnqfZBJWN-19" value="" style="shape=singleArrow;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="280" y="188.75" width="90" height="45" as="geometry" />
+          <mxGeometry x="280" y="160" width="90" height="45" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

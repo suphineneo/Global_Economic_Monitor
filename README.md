@@ -12,7 +12,6 @@ cd Global_Economic_Monitor
 python -m pip install -r requirements.txt
 
 cd app
-python -m etl_project.pipelines.global_economic_monitor
 ```
 
 Clone `template.env` into `.env` file and update it with your environment variables
@@ -21,18 +20,14 @@ Clone `template.env` into `.env` file and update it with your environment variab
 
 
 ## Run on local machine
-- `process_exports`
-  - logs to DB and runs on a schedule
-  - outputs to DB tables: `exports` and `pipeline_logs`
-```bash
-python -m etl_project.pipelines.process_exports
-```
+- queries World Bank API for 5 types of indicators
+- outputs to DB tables
+- stores pipeline logs to DB
+- runs on a schedule
+- does 2 levels of transforms, including SQL window functions `rank()`
 
-- `process_unemployment`
-  - does not log to DB, but does 2 levels of transforms, with SQL `rank()`
-  - outputs to DB tables: `unemployment` and `unemployment_ranked`
 ```bash
-python -m etl_project.pipelines.process_unemployment
+python -m etl_project.pipelines.global_economic_monitor
 ```
 
 
@@ -76,7 +71,7 @@ docker-compose down
 
 ## Deploy and run on AWS
 ```bash
-docker tag global_economic_monitor_etl:process_exports 084375572515.dkr.ecr.ap-southeast-1.amazonaws.com/global_economic_monitor_etl:process_exports
+docker tag global_economic_monitor_etl:latest 084375572515.dkr.ecr.ap-southeast-1.amazonaws.com/global_economic_monitor_etl:latest
 
-docker push 084375572515.dkr.ecr.ap-southeast-1.amazonaws.com/global_economic_monitor_etl:process_exports
+docker push 084375572515.dkr.ecr.ap-southeast-1.amazonaws.com/global_economic_monitor_etl:latest
 ```

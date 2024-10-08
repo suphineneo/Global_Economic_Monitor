@@ -14,9 +14,10 @@ What users would find your data useful? How do they want to access the data?
 
 What questions are you trying to answer with your data? How will your data support your users?
 
-> - How has unemployment rate changed for each country over the years?
+> - Which are the top 10 largest economies by gdp in the world?
+> - How hasthe value of exports changed for each country over the years?
 > - What changes have happened in the industrial world for each country?
-> - Which country had the highest import in 2023?
+> - Which country had the highest or lowest employment rates by region and by year?
 > - which countries have had the fastest Consumer Price Index over time?
 > - What is the relationship between the different economic indicators?
 
@@ -25,27 +26,60 @@ What questions are you trying to answer with your data? How will your data suppo
 
 What datasets are you sourcing from? How frequently are the source datasets updating?
 
-> https://datacatalog.worldbank.org/search/dataset/0037798/Global-Economic-Monitor
+> World Bank economic indicators and their codes are listed in https://datatopics.worldbank.org/world-development-indicators/themes/economy.html
+> ![images/global_economic_indicators.png](images/global_economic_indicators.png)
+
 >
 > Specifically, we will start exploring these data sets
-> - Unemployment Rate, seas. adj.
-> - Industrial Production, constant 2010 US$, seas. adj.
-> - Exports Merchandise, Customs, Price, US$, seas. adj.
-> - CPI Price, nominal, seas. adj.
+> - Unemployment Rate
+> - Industrial Production
+> - Exports Merchandise
+> - CPI Price
+> - GDP
 > 
-> The source datasets are available as static files and also via API.
-> The data is updated at a daily granularity.
+>
+>   Note:
+>   - The source datasets are available via API. The data is updated at a yearly granularity.
+>   - Basic API call structure: https://api.worldbank.org/v2/countries/all/indicators/NY.GDP.MKTP.CD?date=2023
+>   - API keys and other authentication methods are not necessary to access the API.
+
 
 
 ## Solution architecture
 
-> (t.b.d)
+> ![images/system_architecture_diagram.png](images/system_architecture_diagram.png)
 
 How are we going to get data flowing from source to serving? What components and services will we combine to implement the solution? How do we automate the entire running of the solution?
 
-- What data extraction patterns are you going to be using? TBC
-- What data loading patterns are you going to be using?
-- What data transformation patterns are you going to be performing?
+> - What data extraction patterns are you going to be using? Incremental Extract
+> - What data loading patterns are you going to be using? Upsert
+> - What data transformation patterns are you going to be performing?
+>   - transform raw data: filter, rename, dropna, change column type, merge
+>   - transform_sql : using SQL queries and window function rank()
+
+**Features**:
+-	Economic indicators can be dynamically added or removed through the usage of dictionaries (key value pairs) in yaml file 
+-	The key refers to the code of the economic indicator e.g. FP.CPI.TOTL is the code for CPI, while the value "cpi" is the name of the table that will be created in postgres.
+-	The main function retrieves the dictionary from YAML. It then iterates through each key-value pair in this dictionary, executing the ETL pipeline for every indicator specified.
+-	The ETL pipeline will create 2 tables in postgres for each economic indicator - one with the original data, and another with averages and ranking.
+
+**ELT/ETL techniques applied:**
+- Object oriented programming
+-	Classes: api, postgres, pipeline logging, metadata logging
+-	A common ETL function
+-	A common main function
+- YAML
+- Jinja 
+- Data loading pattern: Upsert
+- Data extraction pattern: Incremental 
+    - 1 - If database table doesn't exist, it is considered 1st run, and the date_range in yaml will be used to perform a full extract. 
+   -  2 - Subsequent runs will be incremental. The maximum value in year column will be queried and +1. Max year + 1 will be passed as date param into API.
+
+![images/increment_api_extract.drawio.png](images/increment_api_extract.drawio.png)
+
+- Transformations (before loading) - rename columns, dropna, merge, change datatype of column
+- Transformations (after loading) - using jinja files, Create Table As and Partition By to create a ranked table for each economic indicator. 
+
 
 ## Breakdown of tasks
 

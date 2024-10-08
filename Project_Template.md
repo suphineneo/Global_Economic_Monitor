@@ -27,7 +27,7 @@ What questions are you trying to answer with your data? How will your data suppo
 What datasets are you sourcing from? How frequently are the source datasets updating?
 
 > World Bank economic indicators and their codes are listed in https://datatopics.worldbank.org/world-development-indicators/themes/economy.html
-> ![image](https://github.com/user-attachments/assets/590f9aab-1bdb-41b9-8d80-337c4f23cef7)
+> ![images/global_economic_indicators.png](images/global_economic_indicators.png)
 
 >
 > Specifically, we will start exploring these data sets
@@ -75,7 +75,7 @@ How are we going to get data flowing from source to serving? What components and
     - 1 - If database table doesn't exist, it is considered 1st run, and the date_range in yaml will be used to perform a full extract. 
    -  2 - Subsequent runs will be incremental. The maximum value in year column will be queried and +1. Max year + 1 will be passed as date param into API.
 
-![image](https://github.com/user-attachments/assets/f2e88edb-66bb-4181-82dc-effa78395546)
+![images/increment_api_extract.drawio.png](images/increment_api_extract.drawio.png)
 
 - Transformations (before loading) - rename columns, dropna, merge, change datatype of column
 - Transformations (after loading) - using jinja files, Create Table As and Partition By to create a ranked table for each economic indicator. 

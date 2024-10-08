@@ -1,3 +1,5 @@
+## Note for instructors: Pls ignore 'process_exports.py' under pipelines and 'export.py' under assets. We are in the midst of troubleshooting something. They are not used or called by global_economic_monitor.py
+
 ## Overview
 
 This is the code repository for one of the DataEngineerCamp `2024-09` Project-1 groups. It builds up data pipelines to fetch data from [World Bank Open Data](https://data.worldbank.org/), specifically the [Global Economic Monitor](https://datacatalog.worldbank.org/search/dataset/0037798/Global-Economic-Monitor) data set.

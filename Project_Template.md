@@ -47,7 +47,7 @@ What datasets are you sourcing from? How frequently are the source datasets upda
 
 ## Solution architecture
 
-> (image)
+> ![images/system_architecture_diagram.png](images/system_architecture_diagram.png)
 
 How are we going to get data flowing from source to serving? What components and services will we combine to implement the solution? How do we automate the entire running of the solution?
 

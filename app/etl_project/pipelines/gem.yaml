@@ -11,7 +11,7 @@ extract:
   incremental_column: "year"
 table_names:
     SL.UEM.TOTL.ZS: "unemployment"
-    TX.VAL.MRCH.XD.WD: "exports"
-    NV.IND.TOTL.KD.ZG: "industrial"
+    #TX.VAL.MRCH.XD.WD: "exports"
+    #NV.IND.TOTL.KD.ZG: "industrial"
     FP.CPI.TOTL: "cpi"
     NY.GDP.MKTP.CD: "gdp"

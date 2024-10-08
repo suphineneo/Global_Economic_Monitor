@@ -115,3 +115,10 @@ How are we going to get data flowing from source to serving? What components and
 5. S3 for `.env` file - screenshot of `.env` file in S3
 
     ![images/10_s3_env_file.png](images/10_s3_env_file.png)
+
+
+## Learnings
+
+- Integrate early, integrate often
+- Use tests to guard against code regression
+- Deploy early, deploy often to get code running in a production or production-like environment

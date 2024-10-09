@@ -20,6 +20,10 @@ Clone `template.env` into `.env` file and update it with your environment variab
 - This will be used for local development and testing
 - The `.env` file will not be committed into the Git repository
 
+Additional Steps:
+- create a `logs` folder under `apps/etl_project/`
+- if running on a postgres instance on local machine, create a database with the same name as that specified in `.env` file
+
 
 ## Run on local machine
 - queries World Bank API for 5 types of indicators
@@ -73,7 +77,7 @@ docker-compose down
 
 ## Deploy and run on AWS
 ```bash
-docker tag global_economic_monitor_etl:latest 084375572515.dkr.ecr.ap-southeast-1.amazonaws.com/global_economic_monitor_etl:latest
+docker tag global_economic_monitor_etl:latest ${CONTAINER_REGISTRY_URL}/global_economic_monitor_etl:latest
 
-docker push 084375572515.dkr.ecr.ap-southeast-1.amazonaws.com/global_economic_monitor_etl:latest
+docker push ${CONTAINER_REGISTRY_URL}/global_economic_monitor_etl:latest
 ```

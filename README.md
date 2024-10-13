@@ -1,5 +1,3 @@
-## Note for instructors: Pls ignore 'process_exports.py' under pipelines and 'export.py' under assets. We are in the midst of troubleshooting something. They are not used or called by global_economic_monitor.py
-
 ## Overview
 
 This is the code repository for one of the DataEngineerCamp `2024-09` Project-1 groups. It builds up data pipelines to fetch data from [World Bank Open Data](https://data.worldbank.org/), specifically the [Global Economic Monitor](https://datacatalog.worldbank.org/search/dataset/0037798/Global-Economic-Monitor) data set.
@@ -25,7 +23,7 @@ Additional Steps:
 - if running on a postgres instance on local machine, create a database with the same name as that specified in `.env` file
 
 
-## Run on local machine
+## Run Python scripts directly on local machine
 - queries World Bank API for 5 types of indicators
 - outputs to DB tables
 - stores pipeline logs to DB
@@ -44,23 +42,20 @@ python -m pytest
 ```
 
 
-## Build Docker containers
-- Build and run locally
-- Change the Dockerfile to specify which `process_*` pipeline to be built and run
+## Build Docker container image
 ```bash
 docker build --platform=linux/amd64 -t global_economic_monitor_etl .
+```
+
+## Run on local machine
+Refer to `template.env` for specifying the `.env` file for the corresponding setup
+
+- in a Docker container pointing to localhost postgres server running at port `5432`
+```bash
 docker run --env-file .env global_economic_monitor_etl:latest
 ```
 
-- Build and push to ECR
-```bash
-docker build --platform=linux/amd64 -t global_economic_monitor_etl:process_exports .
-# docker build --platform=linux/amd64 -t global_economic_monitor_etl:process_unemployment .
-```
-
-
-## Run on local machine in a docker-compose cluster
-- refer to `template.env` for specifying the `.env` file for a `docker-compose` setup
+- in a docker-compose cluster
 ```bash
 # start postgres and etl containers and link them to each other
 docker-compose up
@@ -76,8 +71,14 @@ docker-compose down
 
 
 ## Deploy and run on AWS
+
+- Deploy to AWS ECR
 ```bash
 docker tag global_economic_monitor_etl:latest ${CONTAINER_REGISTRY_URL}/global_economic_monitor_etl:latest
 
 docker push ${CONTAINER_REGISTRY_URL}/global_economic_monitor_etl:latest
 ```
+
+- Create an AWS ECS cluster and task definition
+- Create a new task using the above cluster and task definition
+- Check logs and data in RDS
